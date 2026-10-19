@@ -1,0 +1,77 @@
+name: "LR6 - Intermediate SAST Bandit and Semgrep"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  sast:
+    name: "Security Scan and Quality Gate"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install SAST tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run Bandit
+        run: |
+          mkdir -p reports
+
+          bandit -r app \
+            -f json \
+            -o reports/bandit.json \
+            --exit-zero
+
+          bandit -r app --exit-zero
+
+      - name: Run Semgrep and generate JSON
+        run: |
+          semgrep scan \
+            --config .semgrep.yml \
+            --json \
+            --output reports/semgrep.json \
+            app
+
+      - name: Generate Semgrep SARIF
+        run: |
+          semgrep scan \
+            --config .semgrep.yml \
+            --sarif \
+            --output reports/semgrep.sarif \
+            app
+
+      - name: Upload SAST reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-security-reports
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload SARIF to GitHub Security
+        if: ${{ always() && hashFiles('reports/semgrep.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: reports/semgrep.sarif
+          category: semgrep
+
+      - name: Quality Gate
+        run: python scripts/quality_gate.py

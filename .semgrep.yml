@@ -1,0 +1,14 @@
+rules:
+  - id: python-unsafe-eval
+    message: >
+      Unsafe use of eval().
+      Use json.loads() for JSON data
+      instead of executing Python code.
+    languages:
+      - python
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-95"
+      confidence: HIGH
+    pattern: eval(...)

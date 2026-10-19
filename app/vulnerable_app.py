@@ -10,3 +10,8 @@ def find_user(connection, user_id):
     )
 
     return cursor.fetchone()
+
+
+def parse_value(data):
+    # Небезопасное выполнение строки как Python-кода.
+    return eval(data)
