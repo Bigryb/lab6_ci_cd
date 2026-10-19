@@ -1,17 +1,23 @@
-PASSWORD = "lab_demo_password_123"
+import json
+import os
+
+
+# Исправление 1: пароль берём из переменной окружения.
+PASSWORD = os.getenv("APP_PASSWORD")
 
 
 def find_user(connection, user_id):
     cursor = connection.cursor()
 
-    # Уязвимость SQL Injection.
+    # Исправление 2: параметризованный SQL-запрос.
     cursor.execute(
-        f"SELECT id, username FROM users WHERE id = {user_id}"
+        "SELECT id, username FROM users WHERE id = ?",
+        (user_id,)
     )
 
     return cursor.fetchone()
 
 
 def parse_value(data):
-    # Небезопасное выполнение строки как Python-кода.
-    return eval(data)
+    # Исправление 3: безопасная обработка JSON.
+    return json.loads(data)
